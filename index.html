@@ -309,87 +309,124 @@ function renderClassifyResults(data) {
 </script>
 
 <script>
-// ── Shared canvas helper ───────────────────────────────────────────────────
-function drawOnCanvas(out, drawFn, caption) {
+// ── Find the most "interesting" region in the image by sampling pixels ─────
+function findROI(ctx, w, h) {
+  const step = 6;
+  const data = ctx.getImageData(0, 0, w, h).data;
+  // Score each grid cell by brightness variance (high variance = edges/features)
+  let bestScore = -1, bestX = w * 0.5, bestY = h * 0.45;
+  const cellW = Math.floor(w / 6), cellH = Math.floor(h / 6);
+  for (let gy = 1; gy < 5; gy++) {
+    for (let gx = 1; gx < 5; gx++) {
+      const cx = gx * cellW, cy = gy * cellH;
+      let sum = 0, sum2 = 0, n = 0;
+      for (let dy = -cellH/2; dy < cellH/2; dy += step) {
+        for (let dx = -cellW/2; dx < cellW/2; dx += step) {
+          const px = Math.min(w-1, Math.max(0, cx + dx));
+          const py = Math.min(h-1, Math.max(0, cy + dy));
+          const i = (Math.floor(py) * w + Math.floor(px)) * 4;
+          const v = (data[i] + data[i+1] + data[i+2]) / 3;
+          sum += v; sum2 += v * v; n++;
+        }
+      }
+      const mean = sum / n;
+      const variance = sum2 / n - mean * mean;
+      const score = variance + mean * 0.3;
+      if (score > bestScore) { bestScore = score; bestX = cx; bestY = cy; }
+    }
+  }
+  return { cx: bestX, cy: bestY };
+}
+
+// ── Shared canvas loader ───────────────────────────────────────────────────
+function loadCanvas(out, drawFn) {
   const url = URL.createObjectURL(currentBlob);
   const img = new Image();
   img.onload = () => {
-    const w = img.naturalWidth  || img.width  || 512;
-    const h = img.naturalHeight || img.height || 512;
+    const w = img.naturalWidth || 512;
+    const h = img.naturalHeight || 512;
     const canvas = document.createElement('canvas');
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0, w, h);
     URL.revokeObjectURL(url);
-    drawFn(ctx, w, h);
-    out.innerHTML = '';
-    out.appendChild(canvas);
-    const p = document.createElement('p');
-    p.style.cssText = 'font-size:.78rem;color:var(--muted);margin-top:.6rem;line-height:1.5';
-    p.innerHTML = caption;
-    out.appendChild(p);
+    drawFn(ctx, w, h, canvas);
   };
   img.onerror = () => {
-    out.innerHTML = '<p class="status-msg" style="color:var(--red)">Could not load image for canvas.</p>';
+    out.innerHTML = '<p class="status-msg" style="color:var(--red)">Could not load image.</p>';
   };
   img.src = url;
 }
 
-// ── Segmentation (canvas mock) ─────────────────────────────────────────────
+// ── Segmentation (image-aware canvas mock) ────────────────────────────────
 function runSegment() {
   if (!currentBlob) { alert('Upload an image first.'); return; }
   const out = document.getElementById('segment-results');
   out.innerHTML = '<p class="status-msg">⏳ Generating mask...</p>';
-  drawOnCanvas(out, (ctx, w, h) => {
-    // Draw lung-region segmentation mask overlay
-    const cx = w * 0.5, cy = h * 0.45, rx = w * 0.3, ry = h * 0.33;
-    // Solid teal ellipse at 45% opacity
+  loadCanvas(out, (ctx, w, h, canvas) => {
+    const { cx, cy } = findROI(ctx, w, h);
+    const rx = w * 0.18, ry = h * 0.20;
+    // Dashed outline mask
     ctx.save();
-    ctx.globalAlpha = 0.45;
+    ctx.setLineDash([Math.max(4, w * 0.008), Math.max(3, w * 0.005)]);
+    ctx.strokeStyle = '#00c6ff';
+    ctx.lineWidth = Math.max(2, w * 0.005);
+    ctx.globalAlpha = 0.95;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    // Subtle fill
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.22;
     ctx.fillStyle = '#00c6ff';
     ctx.beginPath();
     ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Bright border
-    ctx.globalAlpha = 0.9;
-    ctx.strokeStyle = '#00c6ff';
-    ctx.lineWidth = Math.max(2, w * 0.004);
-    ctx.stroke();
     ctx.restore();
     const coverage = (Math.PI * rx * ry / (w * h) * 100).toFixed(1);
-    // Temporarily store coverage for caption
-    ctx.canvas._coverage = coverage;
-  }, `Mask coverage: <strong style="color:var(--accent)">${(Math.PI * (0.3*512) * (0.33*512) / (512*512) * 100).toFixed(1)}%</strong> &nbsp;·&nbsp; <em>Mock — real U-Net weights on hackathon day</em>`);
+    out.innerHTML = '';
+    out.appendChild(canvas);
+    const p = document.createElement('p');
+    p.style.cssText = 'font-size:.78rem;color:var(--muted);margin-top:.6rem;line-height:1.6';
+    p.innerHTML = `Mask coverage: <strong style="color:var(--accent)">${coverage}%</strong> &nbsp;·&nbsp; <em>Mock — real U-Net on hackathon day</em>`;
+    out.appendChild(p);
+  });
 }
 
-// ── Grad-CAM (canvas heatmap mock) ────────────────────────────────────────
+// ── Grad-CAM (image-aware heatmap mock) ────────────────────────────────────
 function runGradcam() {
   if (!currentBlob) { alert('Upload an image first.'); return; }
   const out = document.getElementById('gradcam-results');
   out.innerHTML = '<p class="status-msg">⏳ Computing attention map...</p>';
-  drawOnCanvas(out, (ctx, w, h) => {
-    // Layer 1: dark vignette to make heatmap pop
+  loadCanvas(out, (ctx, w, h, canvas) => {
+    const { cx, cy } = findROI(ctx, w, h);
+    // Slight darkening of whole image
     ctx.save();
-    ctx.globalAlpha = 0.35;
+    ctx.globalAlpha = 0.28;
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, w, h);
     ctx.restore();
-    // Layer 2: heatmap blobs (red=hot, yellow=medium)
+    // Hot zone around ROI
     [
-      [0.50, 0.42, 0.28, 'rgba(255,30,0,0.75)'],
-      [0.48, 0.40, 0.17, 'rgba(255,140,0,0.70)'],
-      [0.52, 0.44, 0.09, 'rgba(255,255,0,0.65)'],
-    ].forEach(([x, y, r, color]) => {
-      const g = ctx.createRadialGradient(w*x, h*y, 0, w*x, h*y, w*r);
+      [0,    w * 0.22, 'rgba(255,20,0,0.72)'],
+      [0,    w * 0.13, 'rgba(255,130,0,0.65)'],
+      [0,    w * 0.06, 'rgba(255,240,0,0.60)'],
+    ].forEach(([offset, r, color]) => {
+      const g = ctx.createRadialGradient(cx + offset, cy, 0, cx + offset, cy, r);
       g.addColorStop(0, color);
       g.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.save();
-      ctx.globalAlpha = 1;
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, h);
       ctx.restore();
     });
-  }, `🔴 <strong>Red</strong> = high attention &nbsp;|&nbsp; 🟡 <strong>Yellow</strong> = medium &nbsp;|&nbsp; 🔵 <strong>Dark</strong> = low<br><em>Mock — real Grad-CAM via backprop on hackathon day</em>`)
+    out.innerHTML = '';
+    out.appendChild(canvas);
+    const p = document.createElement('p');
+    p.style.cssText = 'font-size:.78rem;color:var(--muted);margin-top:.6rem;line-height:1.6';
+    p.innerHTML = `🔴 <strong>Red</strong> = model focused here &nbsp;|&nbsp; 🟡 Yellow = medium &nbsp;|&nbsp; Dark = ignored<br><em>Mock — real Grad-CAM via backprop on hackathon day</em>`;
+    out.appendChild(p);
+  });
 }
 </script>
 
