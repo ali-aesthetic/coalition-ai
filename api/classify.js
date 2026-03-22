@@ -1,4 +1,4 @@
-// Body parser ON — we receive base64 JSON, no binary transfer issues
+// Sends base64 image as JSON {"inputs": "..."} — correct HF Inference API format
 const handler = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -7,8 +7,7 @@ const handler = async (req, res) => {
   if (!token) return res.status(500).json({ error: 'HF_TOKEN not configured on server' });
 
   try {
-    const { data, type } = req.body; // base64 string + mime type from frontend
-    const binary = Buffer.from(data, 'base64');
+    const { data } = req.body; // base64 string from frontend
 
     let result;
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -16,13 +15,13 @@ const handler = async (req, res) => {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': type || 'image/jpeg',
+          'Content-Type': 'application/json',
         },
-        body: binary,
+        body: JSON.stringify({ inputs: data }),
       });
 
       const text = await hfRes.text();
-      // HF returns HTML when model is loading or rate-limited
+      // HF returns HTML when model is loading or request hits the web UI instead of API
       if (text.trim().startsWith('<')) {
         if (attempt < 2) {
           await new Promise(r => setTimeout(r, 15000));
