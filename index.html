@@ -325,65 +325,87 @@ function renderClassifyResults(data) {
 </script>
 
 <script>
-// ── Segmentation (canvas mock — swap for real model on hackathon day) ──────
+// ── Shared canvas helper ───────────────────────────────────────────────────
+function drawOnCanvas(out, drawFn, caption) {
+  const url = URL.createObjectURL(currentBlob);
+  const img = new Image();
+  img.onload = () => {
+    const w = img.naturalWidth  || img.width  || 512;
+    const h = img.naturalHeight || img.height || 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    URL.revokeObjectURL(url);
+    drawFn(ctx, w, h);
+    out.innerHTML = '';
+    out.appendChild(canvas);
+    const p = document.createElement('p');
+    p.style.cssText = 'font-size:.78rem;color:var(--muted);margin-top:.6rem;line-height:1.5';
+    p.innerHTML = caption;
+    out.appendChild(p);
+  };
+  img.onerror = () => {
+    out.innerHTML = '<p class="status-msg" style="color:var(--red)">Could not load image for canvas.</p>';
+  };
+  img.src = url;
+}
+
+// ── Segmentation (canvas mock) ─────────────────────────────────────────────
 function runSegment() {
   if (!currentBlob) { alert('Upload an image first.'); return; }
   const out = document.getElementById('segment-results');
   out.innerHTML = '<p class="status-msg">⏳ Generating mask...</p>';
-  const img = new Image();
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width; canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
-    // Simulate a segmentation mask — ellipse in lung region
-    const cx = img.width * 0.5, cy = img.height * 0.45;
-    const rx = img.width * 0.28, ry = img.height * 0.32;
+  drawOnCanvas(out, (ctx, w, h) => {
+    // Draw lung-region segmentation mask overlay
+    const cx = w * 0.5, cy = h * 0.45, rx = w * 0.3, ry = h * 0.33;
+    // Solid teal ellipse at 45% opacity
     ctx.save();
-    ctx.globalAlpha = 0.38;
-    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
-    grad.addColorStop(0, '#00c6ff'); grad.addColorStop(1, 'transparent');
-    ctx.fillStyle = grad;
-    ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
-    ctx.fill(); ctx.restore();
-    const coverage = (Math.PI * rx * ry / (img.width * img.height) * 100).toFixed(1);
-    out.innerHTML = '';
-    out.appendChild(canvas);
-    const infoA = document.createElement('p');
-    infoA.style.cssText = 'font-size:.78rem;color:var(--muted);margin-top:.6rem';
-    infoA.innerHTML = `Mask coverage: ${coverage}% · <em>Mock output — real U-Net weights loaded on hackathon day</em>`;
-    out.appendChild(infoA);
-  };
-  img.src = document.getElementById('preview-img').src;
+    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = '#00c6ff';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Bright border
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = '#00c6ff';
+    ctx.lineWidth = Math.max(2, w * 0.004);
+    ctx.stroke();
+    ctx.restore();
+    const coverage = (Math.PI * rx * ry / (w * h) * 100).toFixed(1);
+    // Temporarily store coverage for caption
+    ctx.canvas._coverage = coverage;
+  }, `Mask coverage: <strong style="color:var(--accent)">${(Math.PI * (0.3*512) * (0.33*512) / (512*512) * 100).toFixed(1)}%</strong> &nbsp;·&nbsp; <em>Mock — real U-Net weights on hackathon day</em>`);
 }
 
-// ── Grad-CAM (canvas heatmap — swap for real on hackathon day) ─────────────
+// ── Grad-CAM (canvas heatmap mock) ────────────────────────────────────────
 function runGradcam() {
   if (!currentBlob) { alert('Upload an image first.'); return; }
   const out = document.getElementById('gradcam-results');
   out.innerHTML = '<p class="status-msg">⏳ Computing attention map...</p>';
-  const img = new Image();
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width; canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
-    ctx.globalAlpha = 0.52;
-    // Radial heatmap centered on likely ROI
-    [[0.5,0.42,0.25,'#ff4400'],[0.48,0.4,0.15,'#ffaa00'],[0.52,0.44,0.08,'#ffff00']].forEach(([x,y,r,c]) => {
-      const g = ctx.createRadialGradient(img.width*x,img.height*y,0,img.width*x,img.height*y,img.width*r);
-      g.addColorStop(0,c); g.addColorStop(1,'transparent');
+  drawOnCanvas(out, (ctx, w, h) => {
+    // Layer 1: dark vignette to make heatmap pop
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+    // Layer 2: heatmap blobs (red=hot, yellow=medium)
+    [
+      [0.50, 0.42, 0.28, 'rgba(255,30,0,0.75)'],
+      [0.48, 0.40, 0.17, 'rgba(255,140,0,0.70)'],
+      [0.52, 0.44, 0.09, 'rgba(255,255,0,0.65)'],
+    ].forEach(([x, y, r, color]) => {
+      const g = ctx.createRadialGradient(w*x, h*y, 0, w*x, h*y, w*r);
+      g.addColorStop(0, color);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.save();
+      ctx.globalAlpha = 1;
       ctx.fillStyle = g;
-      ctx.fillRect(0,0,img.width,img.height);
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
     });
-    out.innerHTML = '';
-    out.appendChild(canvas);
-    const infoB = document.createElement('p');
-    infoB.style.cssText = 'font-size:.78rem;color:var(--muted);margin-top:.6rem';
-    infoB.innerHTML = `🔴 Red = high attention &nbsp;|&nbsp; 🔵 Blue = low attention<br><em>Visual mock — real Grad-CAM via shared/gradcam.py on hackathon day</em>`;
-    out.appendChild(infoB);
-  };
-  img.src = document.getElementById('preview-img').src;
+  }, `🔴 <strong>Red</strong> = high attention &nbsp;|&nbsp; 🟡 <strong>Yellow</strong> = medium &nbsp;|&nbsp; 🔵 <strong>Dark</strong> = low<br><em>Mock — real Grad-CAM via backprop on hackathon day</em>`)
 }
 </script>
 
