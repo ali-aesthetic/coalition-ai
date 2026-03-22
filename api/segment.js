@@ -8,19 +8,18 @@ const handler = async (req, res) => {
     const { data } = req.body;
 
     const rfRes = await fetch(
-      `https://classify.roboflow.com/chest-x-rays-qjmia/2?api_key=${apiKey}`,
+      `https://outline.roboflow.com/chest-xrays-zogcf-jimfe/1?api_key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: data, // raw base64, no encodeURIComponent
+        body: data,
       }
     );
 
     const json = await rfRes.json();
-    if (!json.predictions) return res.status(502).json({ error: json.message || 'No predictions returned' });
+    if (!json.predictions) return res.status(502).json({ error: json.message || 'No segmentation returned' });
 
-    const normalised = json.predictions.map(p => ({ label: p.class, score: p.confidence }));
-    res.status(200).json(normalised);
+    res.status(200).json(json.predictions);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

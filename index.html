@@ -366,101 +366,107 @@ function loadCanvas(out, drawFn) {
   img.src = url;
 }
 
-// ── Segmentation (anatomical PA chest X-ray mock) ─────────────────────────
-function runSegment() {
+// ── Segmentation (real Roboflow outline API) ──────────────────────────────
+async function runSegment() {
   if (!currentBlob) { alert('Upload an image first.'); return; }
+  const btn = document.getElementById('btn-segment');
   const out = document.getElementById('segment-results');
-  out.innerHTML = '<p class="status-msg">⏳ Generating mask...</p>';
-  loadCanvas(out, (ctx, w, h, canvas) => {
-    const dash = [Math.max(4, w * 0.008), Math.max(3, w * 0.005)];
-    const lw = Math.max(2, w * 0.004);
+  btn.disabled = true; btn.textContent = '⏳ Segmenting...';
+  out.innerHTML = '<p class="status-msg">⏳ Running segmentation...</p>';
 
-    // Anatomical regions (% of image dimensions, PA chest X-ray standard)
-    const regions = [
-      // Right lung  (viewer's left): x 5–45%, y 15–85%
-      { x: w*0.05, y: h*0.15, rw: w*0.19, rh: h*0.35, color: '#00c6ff', label: 'R. Lung' },
-      // Left lung   (viewer's right): x 55–95%, y 15–85%
-      { x: w*0.55, y: h*0.15, rw: w*0.19, rh: h*0.35, color: '#00c6ff', label: 'L. Lung' },
-      // Heart silhouette: x 35–65%, y 30–70% — slightly left of centre
-      { x: w*0.37, y: h*0.32, rw: w*0.14, rh: h*0.19, color: '#ff4d6d', label: 'Heart' },
-    ];
-
-    regions.forEach(({ x, y, rw, rh, color }) => {
-      const cx = x + rw, cy = y + rh;
-      ctx.save();
-      ctx.setLineDash(dash);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = lw;
-      ctx.globalAlpha = 0.92;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, rw, rh, 0, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.globalAlpha = 0.18;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, rw, rh, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(currentBlob);
     });
 
-    // Bronchi: two short diverging lines at carina level (~y 22–30%, x 45–55%)
-    ctx.save();
-    ctx.strokeStyle = '#a78bfa';
-    ctx.lineWidth = lw * 1.2;
-    ctx.globalAlpha = 0.85;
-    ctx.lineCap = 'round';
-    const bx = w * 0.50, by = h * 0.23;
-    // Left main bronchus (goes upper-right from carina)
-    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + w*0.07, by - h*0.04); ctx.stroke();
-    // Right main bronchus (goes lower-left from carina)
-    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - w*0.07, by - h*0.02); ctx.stroke();
-    ctx.restore();
+    const resp = await fetch('/api/segment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: base64 }),
+    });
+    const predictions = await resp.json();
+    if (predictions.error) throw new Error(predictions.error);
+    if (!predictions.length) throw new Error('No regions detected in this image');
 
-    const totalArea = (Math.PI * w*0.19 * h*0.35 * 2) / (w * h) * 100;
-    out.innerHTML = '';
-    out.appendChild(canvas);
-    const p = document.createElement('p');
-    p.style.cssText = 'font-size:.78rem;color:var(--muted);margin-top:.6rem;line-height:1.6';
-    p.innerHTML = `<span style="color:#00c6ff">■</span> Lungs &nbsp;<span style="color:#ff4d6d">■</span> Heart &nbsp;<span style="color:#a78bfa">■</span> Bronchi &nbsp;·&nbsp; Coverage ≈ <strong style="color:var(--accent)">${totalArea.toFixed(1)}%</strong> &nbsp;·&nbsp; <em>Mock — real U-Net on hackathon day</em>`;
-    out.appendChild(p);
-  });
+    loadCanvas(out, (ctx, w, h, canvas) => {
+      const colors = { lung: '#00c6ff', default: '#a78bfa' };
+      predictions.forEach(pred => {
+        const pts = pred.points;
+        if (!pts || !pts.length) return;
+        const color = colors[pred.class?.toLowerCase()] || colors.default;
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = Math.max(2, w * 0.004);
+        ctx.globalAlpha = 0.9;
+        ctx.setLineDash([Math.max(4, w * 0.007), Math.max(3, w * 0.004)]);
+        ctx.beginPath();
+        pts.forEach((pt, i) => {
+          i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.closePath();
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 0.15;
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.restore();
+      });
+      out.innerHTML = '';
+      out.appendChild(canvas);
+      const p = document.createElement('p');
+      p.style.cssText = 'font-size:.78rem;color:var(--muted);margin-top:.6rem';
+      p.innerHTML = `${predictions.length} region(s) detected &nbsp;·&nbsp; Model: chest-xrays-zogcf-jimfe via Roboflow`;
+      out.appendChild(p);
+    });
+  } catch(e) {
+    out.innerHTML = `<p class="status-msg" style="color:var(--red)">Error: ${e.message}</p>`;
+  }
+  btn.disabled = false; btn.textContent = '▶ Run Segmentation';
 }
 
-// ── Grad-CAM (image-aware heatmap mock) ────────────────────────────────────
-function runGradcam() {
+// ── Grad-CAM (real Roboflow visualize API) ─────────────────────────────────
+async function runGradcam() {
   if (!currentBlob) { alert('Upload an image first.'); return; }
+  const btn = document.getElementById('btn-gradcam');
   const out = document.getElementById('gradcam-results');
-  out.innerHTML = '<p class="status-msg">⏳ Computing attention map...</p>';
-  loadCanvas(out, (ctx, w, h, canvas) => {
-    const { cx, cy } = findROI(ctx, w, h);
-    // Slight darkening of whole image
-    ctx.save();
-    ctx.globalAlpha = 0.28;
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, w, h);
-    ctx.restore();
-    // Hot zone around ROI
-    [
-      [0,    w * 0.22, 'rgba(255,20,0,0.72)'],
-      [0,    w * 0.13, 'rgba(255,130,0,0.65)'],
-      [0,    w * 0.06, 'rgba(255,240,0,0.60)'],
-    ].forEach(([offset, r, color]) => {
-      const g = ctx.createRadialGradient(cx + offset, cy, 0, cx + offset, cy, r);
-      g.addColorStop(0, color);
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.save();
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, w, h);
-      ctx.restore();
+  btn.disabled = true; btn.textContent = '⏳ Computing...';
+  out.innerHTML = '<p class="status-msg">⏳ Generating attention map...</p>';
+
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(currentBlob);
     });
+
+    const resp = await fetch('/api/gradcam', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: base64 }),
+    });
+    const result = await resp.json();
+    if (result.error) throw new Error(result.error);
+
     out.innerHTML = '';
-    out.appendChild(canvas);
+    if (result.heatmap) {
+      const img = document.createElement('img');
+      img.src = `data:image/jpeg;base64,${result.heatmap}`;
+      img.style.cssText = 'max-width:100%;border-radius:8px';
+      out.appendChild(img);
+    }
+    const top = result.predictions?.reduce((a, b) => a.score > b.score ? a : b);
     const p = document.createElement('p');
-    p.style.cssText = 'font-size:.78rem;color:var(--muted);margin-top:.6rem;line-height:1.6';
-    p.innerHTML = `🔴 <strong>Red</strong> = model focused here &nbsp;|&nbsp; 🟡 Yellow = medium &nbsp;|&nbsp; Dark = ignored<br><em>Mock — real Grad-CAM via backprop on hackathon day</em>`;
+    p.style.cssText = 'font-size:.78rem;color:var(--muted);margin-top:.6rem';
+    p.innerHTML = `Prediction: <strong style="color:var(--accent)">${top?.label}</strong> (${(top?.score*100).toFixed(1)}%) &nbsp;·&nbsp; Roboflow visualize`;
     out.appendChild(p);
-  });
+  } catch(e) {
+    out.innerHTML = `<p class="status-msg" style="color:var(--red)">Error: ${e.message}</p>`;
+  }
+  btn.disabled = false; btn.textContent = '▶ Generate Grad-CAM';
 }
 </script>
 

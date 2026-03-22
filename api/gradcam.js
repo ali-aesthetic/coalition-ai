@@ -8,19 +8,21 @@ const handler = async (req, res) => {
     const { data } = req.body;
 
     const rfRes = await fetch(
-      `https://classify.roboflow.com/chest-x-rays-qjmia/2?api_key=${apiKey}`,
+      `https://classify.roboflow.com/chest-x-rays-qjmia/2?api_key=${apiKey}&visualize=true`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: data, // raw base64, no encodeURIComponent
+        body: data,
       }
     );
 
     const json = await rfRes.json();
-    if (!json.predictions) return res.status(502).json({ error: json.message || 'No predictions returned' });
+    if (!json.predictions) return res.status(502).json({ error: json.message || 'No response from model' });
 
-    const normalised = json.predictions.map(p => ({ label: p.class, score: p.confidence }));
-    res.status(200).json(normalised);
+    res.status(200).json({
+      predictions: json.predictions.map(p => ({ label: p.class, score: p.confidence })),
+      heatmap: json.visualization || null,
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
