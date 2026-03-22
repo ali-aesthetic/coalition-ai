@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coalition AI — Healthcare Demo</title>
+<style>
+:root {
+  --bg:#07101f; --surf:#0f1e35; --surf2:#162540; --border:#1d3050;
+  --accent:#00c6ff; --green:#10b981; --red:#ef4444; --gold:#f59e0b;
+  --purple:#7c3aed; --text:#e2e8f0; --muted:#4e6a8a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+a{color:inherit;text-decoration:none}
+</style>
+
+<style>
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:54px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 1.5rem;background:rgba(7,16,31,.9);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.nav-brand{font-weight:800;color:var(--accent);font-size:.9rem;letter-spacing:.05em}
+.nav-right{display:flex;align-items:center;gap:1rem}
+#countdown{font-size:.8rem;color:var(--gold);font-weight:700;font-variant-numeric:tabular-nums}
+.btn-settings{background:none;border:1px solid var(--border);color:var(--muted);
+  border-radius:8px;padding:.3rem .7rem;font-size:.75rem;cursor:pointer;transition:.2s}
+.btn-settings:hover{border-color:var(--accent);color:var(--accent)}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;padding:5rem 1.5rem 3rem;
+  background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(0,198,255,.07) 0%,transparent 70%)}
+.hero-tag{display:inline-flex;align-items:center;gap:.5rem;background:rgba(0,198,255,.1);
+  border:1px solid rgba(0,198,255,.3);color:var(--accent);font-size:.72rem;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;padding:.3rem .9rem;border-radius:999px;margin-bottom:1.25rem}
+.hero h1{font-size:clamp(1.8rem,5vw,3rem);font-weight:800;line-height:1.15;
+  background:linear-gradient(135deg,#fff 30%,var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.75rem}
+.hero-sub{color:var(--muted);max-width:520px;margin:.5rem auto 2rem;font-size:1rem}
+.team-badges{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-bottom:2.5rem}
+.badge{background:var(--surf);border:1px solid var(--border);border-radius:999px;
+  padding:.3rem .9rem;font-size:.78rem;color:var(--text)}
+.badge span{color:var(--accent);font-weight:700}
+</style>
+
+<style>
+/* APP SECTION */
+.app{padding:3rem 1.5rem 5rem;max-width:860px;margin:0 auto}
+.section-title{font-size:.7rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:.5rem}
+.card{background:var(--surf);border:1px solid var(--border);border-radius:20px;padding:1.75rem;margin-bottom:1.5rem}
+
+/* UPLOAD */
+.upload-zone{border:2px dashed var(--border);border-radius:16px;padding:2.5rem 1rem;
+  text-align:center;cursor:pointer;transition:.25s;position:relative}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(0,198,255,.04)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-icon{font-size:2.5rem;margin-bottom:.75rem}
+.upload-hint{color:var(--muted);font-size:.85rem}
+#preview-wrap{display:none;margin-top:1.25rem}
+#preview-wrap img{max-height:220px;border-radius:12px;border:1px solid var(--border)}
+
+/* TABS */
+.tabs{display:flex;gap:.5rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.tab-btn{background:none;border:1px solid var(--border);color:var(--muted);
+  border-radius:10px;padding:.45rem 1rem;font-size:.82rem;cursor:pointer;transition:.2s}
+.tab-btn.active{background:rgba(0,198,255,.1);border-color:var(--accent);color:var(--accent);font-weight:700}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* RESULTS */
+.run-btn{display:block;width:100%;padding:.75rem;background:var(--accent);color:#000;
+  font-weight:800;font-size:.9rem;border:none;border-radius:12px;cursor:pointer;
+  margin-bottom:1.25rem;transition:.2s}
+.run-btn:hover{opacity:.9}
+.run-btn:disabled{opacity:.4;cursor:not-allowed}
+.result-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--muted);margin-bottom:.75rem}
+.bar-row{display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem}
+.bar-name{font-size:.82rem;width:120px;flex-shrink:0}
+.bar-track{flex:1;height:10px;background:var(--surf2);border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;border-radius:999px;background:var(--accent);transition:width .6s ease}
+.bar-val{font-size:.78rem;color:var(--muted);width:40px;text-align:right}
+.pred-badge{display:inline-block;background:rgba(0,198,255,.12);border:1px solid var(--accent);
+  color:var(--accent);font-weight:800;font-size:.85rem;padding:.4rem 1rem;border-radius:10px;margin-bottom:1rem}
+canvas{width:100%;border-radius:12px;border:1px solid var(--border);display:block}
+.status-msg{font-size:.82rem;color:var(--muted);text-align:center;padding:1.5rem}
+</style>
+
+<style>
+/* SETTINGS MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surf);border:1px solid var(--border);border-radius:20px;
+  padding:2rem;width:min(480px,90vw);position:relative}
+.modal h3{font-size:1.05rem;font-weight:800;margin-bottom:1.25rem}
+.field{margin-bottom:1rem}
+.field label{display:block;font-size:.75rem;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem}
+.field input{width:100%;background:var(--bg);border:1px solid var(--border);
+  color:var(--text);border-radius:10px;padding:.6rem .9rem;font-size:.85rem}
+.field input:focus{outline:none;border-color:var(--accent)}
+.field .hint{font-size:.72rem;color:var(--muted);margin-top:.3rem}
+.modal-actions{display:flex;gap:.75rem;margin-top:1.5rem}
+.btn-save{flex:1;padding:.65rem;background:var(--accent);color:#000;font-weight:800;
+  border:none;border-radius:10px;cursor:pointer;font-size:.85rem}
+.btn-cancel{flex:1;padding:.65rem;background:none;border:1px solid var(--border);
+  color:var(--muted);border-radius:10px;cursor:pointer;font-size:.85rem}
+.token-status{display:inline-flex;align-items:center;gap:.4rem;font-size:.75rem;padding:.25rem .6rem;
+  border-radius:999px;margin-left:.5rem}
+.token-status.ok{background:rgba(16,185,129,.15);color:var(--green)}
+.token-status.missing{background:rgba(239,68,68,.15);color:var(--red)}
+
+/* FOOTER */
+footer{text-align:center;padding:2.5rem 1.5rem;border-top:1px solid var(--border);
+  color:var(--muted);font-size:.78rem;line-height:1.8}
+footer strong{color:var(--accent)}
+</style>
+
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">🏥 Coalition AI</div>
+  <div class="nav-right">
+    <div id="countdown">Loading...</div>
+    <span id="token-status" class="token-status missing">⚠ No API token</span>
+    <button class="btn-settings" onclick="openSettings()">⚙ Settings</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag">🏆 AI in Healthcare Hackathon 2026 · CAU Tashkent</div>
+  <h1>Medical AI Demo<br>by Team Coalition</h1>
+  <p class="hero-sub">Upload a radiograph — get disease classification, segmentation mask, and Grad-CAM explainability. Powered by real AI.</p>
+  <div class="team-badges">
+    <div class="badge"><span>Asadbek</span> Ruslanbekov · CAU</div>
+    <div class="badge"><span>Firdavs</span> Jurakulov · Webster</div>
+    <div class="badge"><span>Diyora</span> Karimova</div>
+    <div class="badge"><span>Nigina</span> Kattahodjaeva · TSMU</div>
+  </div>
+  <a href="#app" style="background:var(--accent);color:#000;font-weight:800;padding:.75rem 2rem;border-radius:12px;font-size:.95rem">
+    Try the Demo ↓
+  </a>
+</section>
+
+<!-- APP -->
+<section class="app" id="app">
+
+  <!-- Upload -->
+  <div class="card">
+    <div class="section-title">Step 1 — Upload Image</div>
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" id="file-input" accept="image/*">
+      <div class="upload-icon">🩻</div>
+      <div style="font-weight:700;margin-bottom:.35rem">Drop your radiograph here</div>
+      <div class="upload-hint">PNG, JPG, DICOM-preview — any medical image works</div>
+    </div>
+    <div id="preview-wrap">
+      <img id="preview-img" src="" alt="preview">
+      <p style="font-size:.78rem;color:var(--muted);margin-top:.5rem" id="file-name"></p>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="card">
+    <div class="section-title">Step 2 — Choose Analysis</div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('classify',this)">🔬 Classification (Problem A)</button>
+      <button class="tab-btn" onclick="switchTab('segment',this)">🗺 Segmentation (Problem B)</button>
+      <button class="tab-btn" onclick="switchTab('gradcam',this)">🔥 Grad-CAM — Why?</button>
+    </div>
+
+    <!-- Tab A: Classification -->
+    <div class="tab-panel active" id="tab-classify">
+      <button class="run-btn" id="btn-classify" onclick="runClassify()">▶ Run Classification</button>
+      <div id="classify-results" class="status-msg">Upload an image and click Run.</div>
+    </div>
+
+    <!-- Tab B: Segmentation -->
+    <div class="tab-panel" id="tab-segment">
+      <button class="run-btn" id="btn-segment" onclick="runSegment()">▶ Run Segmentation</button>
+      <div id="segment-results" class="status-msg">Upload an image and click Run.</div>
+    </div>
+
+    <!-- Tab C: Grad-CAM -->
+    <div class="tab-panel" id="tab-gradcam">
+      <button class="run-btn" id="btn-gradcam" onclick="runGradcam()">▶ Generate Grad-CAM</button>
+      <div id="gradcam-results" class="status-msg">Upload an image and click Run.</div>
+    </div>
+  </div>
+
+</section>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <h3>⚙ API Settings</h3>
+    <div class="field">
+      <label>HuggingFace API Token</label>
+      <input type="password" id="hf-token-input" placeholder="hf_xxxxxxxxxxxxxxxxxxxx">
+      <div class="hint">Get yours at <strong>huggingface.co/settings/tokens</strong> — free account works. Token stays in your browser only, never sent to any server except HuggingFace.</div>
+    </div>
+    <div class="field">
+      <label>Classification Model</label>
+      <input type="text" id="model-input" value="nickmuchi/vit-finetuned-chest-xray-pneumonia">
+      <div class="hint">Placeholder model for the prototype. Swap for your trained model on hackathon day.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="saveSettings()">Save & Close</button>
+      <button class="btn-cancel" onclick="closeSettings()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <strong>Team Coalition</strong> · AI in Healthcare Hackathon 2026 · Central Asian University, Tashkent<br>
+  March 26 08:00 start · March 27 20:00 submission · March 28 09:30 live presentations<br>
+  <span style="color:var(--border)">Prototype v1 — real model weights loaded on hackathon day</span>
+</footer>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let currentFile = null;
+let currentBlob = null;
+const HACKATHON_DATE = new Date('2026-03-26T08:00:00+05:00');
+
+// ── Countdown ──────────────────────────────────────────────────────────────
+function updateCountdown() {
+  const diff = HACKATHON_DATE - Date.now();
+  if (diff <= 0) { document.getElementById('countdown').textContent = '🔴 LIVE NOW'; return; }
+  const d = Math.floor(diff/86400000);
+  const h = Math.floor((diff%86400000)/3600000);
+  const m = Math.floor((diff%3600000)/60000);
+  const s = Math.floor((diff%60000)/1000);
+  document.getElementById('countdown').textContent = `⏱ ${d}d ${h}h ${m}m ${s}s`;
+}
+setInterval(updateCountdown, 1000);
+updateCountdown();
+
+// ── Settings ───────────────────────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('hf-token-input').value = localStorage.getItem('hf_token') || '';
+  document.getElementById('model-input').value = localStorage.getItem('hf_model') || 'nickmuchi/vit-finetuned-chest-xray-pneumonia';
+  document.getElementById('settings-modal').classList.add('open');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+function saveSettings() {
+  localStorage.setItem('hf_token', document.getElementById('hf-token-input').value.trim());
+  localStorage.setItem('hf_model', document.getElementById('model-input').value.trim());
+  updateTokenStatus();
+  closeSettings();
+}
+function updateTokenStatus() {
+  const el = document.getElementById('token-status');
+  if (localStorage.getItem('hf_token')) {
+    el.className = 'token-status ok'; el.textContent = '✓ API ready';
+  } else {
+    el.className = 'token-status missing'; el.textContent = '⚠ No API token';
+  }
+}
+updateTokenStatus();
+</script>
+
+<script>
+// ── Upload ─────────────────────────────────────────────────────────────────
+const zone = document.getElementById('upload-zone');
+const fileInput = document.getElementById('file-input');
+
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+
+function handleFile(file) {
+  if (!file) return;
+  currentFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('preview-img').src = e.target.result;
+    document.getElementById('preview-wrap').style.display = 'block';
+    document.getElementById('file-name').textContent = file.name + ' · ' + (file.size/1024).toFixed(1) + ' KB';
+    currentBlob = file;
+    resetResults();
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetResults() {
+  ['classify-results','segment-results','gradcam-results'].forEach(id => {
+    document.getElementById(id).innerHTML = '<p class="status-msg">Ready. Click Run to analyse.</p>';
+  });
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+</script>
+
+<script>
+// ── Classification (real HF API call) ─────────────────────────────────────
+async function runClassify() {
+  if (!currentBlob) { alert('Upload an image first.'); return; }
+  const token = localStorage.getItem('hf_token');
+  const model = localStorage.getItem('hf_model') || 'nickmuchi/vit-finetuned-chest-xray-pneumonia';
+  const btn = document.getElementById('btn-classify');
+  const out = document.getElementById('classify-results');
+
+  btn.disabled = true; btn.textContent = '⏳ Analysing...';
+  out.innerHTML = '<p class="status-msg">Sending to HuggingFace Inference API...</p>';
+
+  if (!token) {
+    out.innerHTML = '<p class="status-msg" style="color:var(--red)">⚠ No API token set. Open ⚙ Settings and add your HuggingFace token.</p>';
+    btn.disabled = false; btn.textContent = '▶ Run Classification'; return;
+  }
+
+  try {
+    const resp = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: currentBlob
+    });
+    if (!resp.ok) throw new Error(`API error ${resp.status}: ${await resp.text()}`);
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    renderClassifyResults(data);
+  } catch(e) {
+    out.innerHTML = `<p class="status-msg" style="color:var(--red)">Error: ${e.message}</p>`;
+  }
+  btn.disabled = false; btn.textContent = '▶ Run Classification';
+}
+
+function renderClassifyResults(data) {
+  const top = data.reduce((a,b) => a.score > b.score ? a : b);
+  let html = `<div class="pred-badge">Prediction: ${top.label} &nbsp;(${(top.score*100).toFixed(1)}%)</div>`;
+  html += '<div class="result-label">Confidence per class</div>';
+  data.sort((a,b) => b.score - a.score).forEach(item => {
+    const pct = (item.score * 100).toFixed(1);
+    const color = item === top ? 'var(--accent)' : 'var(--purple)';
+    html += `<div class="bar-row">
+      <div class="bar-name">${item.label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="bar-val">${pct}%</div>
+    </div>`;
+  });
+  html += `<p style="font-size:.72rem;color:var(--muted);margin-top:1rem">Model: ${localStorage.getItem('hf_model')} · Real inference via HuggingFace API</p>`;
+  document.getElementById('classify-results').innerHTML = html;
+}
+</script>
+
+<script>
+// ── Segmentation (canvas mock — swap for real model on hackathon day) ──────
+function runSegment() {
+  if (!currentBlob) { alert('Upload an image first.'); return; }
+  const out = document.getElementById('segment-results');
+  out.innerHTML = '<p class="status-msg">⏳ Generating mask...</p>';
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width; canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    // Simulate a segmentation mask — ellipse in lung region
+    const cx = img.width * 0.5, cy = img.height * 0.45;
+    const rx = img.width * 0.28, ry = img.height * 0.32;
+    ctx.save();
+    ctx.globalAlpha = 0.38;
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
+    grad.addColorStop(0, '#00c6ff'); grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
+    ctx.fill(); ctx.restore();
+    const coverage = (Math.PI * rx * ry / (img.width * img.height) * 100).toFixed(1);
+    out.innerHTML = '';
+    out.appendChild(canvas);
+    out.innerHTML += `<p style="font-size:.78rem;color:var(--muted);margin-top:.6rem">
+      Mask coverage: ${coverage}% · <em>Mock output — real U-Net weights loaded on hackathon day</em></p>`;
+  };
+  img.src = document.getElementById('preview-img').src;
+}
+
+// ── Grad-CAM (canvas heatmap — swap for real on hackathon day) ─────────────
+function runGradcam() {
+  if (!currentBlob) { alert('Upload an image first.'); return; }
+  const out = document.getElementById('gradcam-results');
+  out.innerHTML = '<p class="status-msg">⏳ Computing attention map...</p>';
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width; canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    ctx.globalAlpha = 0.52;
+    // Radial heatmap centered on likely ROI
+    [[0.5,0.42,0.25,'#ff4400'],[0.48,0.4,0.15,'#ffaa00'],[0.52,0.44,0.08,'#ffff00']].forEach(([x,y,r,c]) => {
+      const g = ctx.createRadialGradient(img.width*x,img.height*y,0,img.width*x,img.height*y,img.width*r);
+      g.addColorStop(0,c); g.addColorStop(1,'transparent');
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,img.width,img.height);
+    });
+    out.innerHTML = '';
+    out.appendChild(canvas);
+    out.innerHTML += `<p style="font-size:.78rem;color:var(--muted);margin-top:.6rem">
+      🔴 Red = high attention &nbsp;|&nbsp; 🔵 Blue = low attention<br>
+      <em>Visual mock — real Grad-CAM via shared/gradcam.py on hackathon day</em></p>`;
+  };
+  img.src = document.getElementById('preview-img').src;
+}
+</script>
+
+</body>
+</html>
