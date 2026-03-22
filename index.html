@@ -272,34 +272,18 @@ async function runClassify() {
   const out = document.getElementById('classify-results');
 
   btn.disabled = true; btn.textContent = '⏳ Analysing...';
-  out.innerHTML = '<p class="status-msg">Sending to AI model...</p>';
+  out.innerHTML = '<p class="status-msg">⏳ Analysing… (first run may take ~20s while model warms up)</p>';
 
   try {
-    let data = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const resp = await fetch('/api/classify', {
-        method: 'POST',
-        headers: { 'Content-Type': currentBlob.type || 'image/jpeg' },
-        body: currentBlob
-      });
-      data = await resp.json();
-
-      // HF free tier: model is cold-starting — wait then retry
-      if (data.error && (data.error.includes('loading') || data.error.includes('Load'))) {
-        const wait = Math.ceil(data.estimated_time || 20);
-        for (let i = wait; i > 0; i--) {
-          out.innerHTML = `<p class="status-msg">⏳ Model is warming up — retrying in <strong>${i}s</strong>…<br><span style="font-size:.75rem;color:var(--muted)">HuggingFace free tier cold-starts after inactivity. Only happens once.</span></p>`;
-          await new Promise(r => setTimeout(r, 1000));
-        }
-        continue; // retry
-      }
-
-      if (!resp.ok || data.error) throw new Error(data.error || `API error ${resp.status}`);
-      renderClassifyResults(data);
-      data = 'done';
-      break;
-    }
-    if (data !== 'done' && data !== null) throw new Error('Model did not load after 3 attempts. Try again in 30s.');
+    const resp = await fetch('/api/classify', {
+      method: 'POST',
+      headers: { 'Content-Type': currentBlob.type || 'image/jpeg' },
+      body: currentBlob
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    if (!Array.isArray(data)) throw new Error('Unexpected response — try again in 30s');
+    renderClassifyResults(data);
   } catch(e) {
     out.innerHTML = `<p class="status-msg" style="color:var(--red)">Error: ${e.message}</p>`;
   }
