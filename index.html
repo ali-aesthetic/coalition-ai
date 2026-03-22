@@ -324,15 +324,31 @@ async function runClassify() {
   }
 
   try {
-    const resp = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: currentBlob
-    });
-    if (!resp.ok) throw new Error(`API error ${resp.status}: ${await resp.text()}`);
-    const data = await resp.json();
-    if (data.error) throw new Error(data.error);
-    renderClassifyResults(data);
+    let data = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const resp = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: currentBlob
+      });
+      data = await resp.json();
+
+      // HF free tier: model is cold-starting — wait then retry
+      if (data.error && (data.error.includes('loading') || data.error.includes('Load'))) {
+        const wait = Math.ceil(data.estimated_time || 20);
+        for (let i = wait; i > 0; i--) {
+          out.innerHTML = `<p class="status-msg">⏳ Model is warming up — retrying in <strong>${i}s</strong>…<br><span style="font-size:.75rem;color:var(--muted)">HuggingFace free tier cold-starts after inactivity. Only happens once.</span></p>`;
+          await new Promise(r => setTimeout(r, 1000));
+        }
+        continue; // retry
+      }
+
+      if (!resp.ok || data.error) throw new Error(data.error || `API error ${resp.status}`);
+      renderClassifyResults(data);
+      data = 'done';
+      break;
+    }
+    if (data !== 'done' && data !== null) throw new Error('Model did not load after 3 attempts. Try again in 30s.');
   } catch(e) {
     out.innerHTML = `<p class="status-msg" style="color:var(--red)">Error: ${e.message}</p>`;
   }
@@ -382,8 +398,10 @@ function runSegment() {
     const coverage = (Math.PI * rx * ry / (img.width * img.height) * 100).toFixed(1);
     out.innerHTML = '';
     out.appendChild(canvas);
-    out.innerHTML += `<p style="font-size:.78rem;color:var(--muted);margin-top:.6rem">
-      Mask coverage: ${coverage}% · <em>Mock output — real U-Net weights loaded on hackathon day</em></p>`;
+    const infoA = document.createElement('p');
+    infoA.style.cssText = 'font-size:.78rem;color:var(--muted);margin-top:.6rem';
+    infoA.innerHTML = `Mask coverage: ${coverage}% · <em>Mock output — real U-Net weights loaded on hackathon day</em>`;
+    out.appendChild(infoA);
   };
   img.src = document.getElementById('preview-img').src;
 }
@@ -409,9 +427,10 @@ function runGradcam() {
     });
     out.innerHTML = '';
     out.appendChild(canvas);
-    out.innerHTML += `<p style="font-size:.78rem;color:var(--muted);margin-top:.6rem">
-      🔴 Red = high attention &nbsp;|&nbsp; 🔵 Blue = low attention<br>
-      <em>Visual mock — real Grad-CAM via shared/gradcam.py on hackathon day</em></p>`;
+    const infoB = document.createElement('p');
+    infoB.style.cssText = 'font-size:.78rem;color:var(--muted);margin-top:.6rem';
+    infoB.innerHTML = `🔴 Red = high attention &nbsp;|&nbsp; 🔵 Blue = low attention<br><em>Visual mock — real Grad-CAM via shared/gradcam.py on hackathon day</em>`;
+    out.appendChild(infoB);
   };
   img.src = document.getElementById('preview-img').src;
 }
