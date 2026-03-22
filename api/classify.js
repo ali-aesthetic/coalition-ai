@@ -1,26 +1,41 @@
+// api/classify.js — Coalition AI
+// Calls your own EfficientNet-B0 model hosted on HuggingFace Spaces
+
 const handler = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const apiKey = process.env.ROBOFLOW_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'ROBOFLOW_API_KEY not configured' });
+  const spaceUrl = process.env.HF_SPACE_URL; // e.g. https://ali-coalition-ai-classifier.hf.space
+  if (!spaceUrl) return res.status(500).json({ error: 'HF_SPACE_URL not configured' });
 
   try {
-    const { data } = req.body;
+    const { data } = req.body; // raw base64 from frontend
 
-    const rfRes = await fetch(
-      `https://serverless.roboflow.com/chest-x-rays-qjmia/3?api_key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: data, // raw base64, no encodeURIComponent
-      }
-    );
+    // Gradio /run/predict expects a data URI
+    const dataUri = `data:image/jpeg;base64,${data}`;
+
+    const rfRes = await fetch(`${spaceUrl}/run/predict`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: [dataUri] }),
+    });
 
     const json = await rfRes.json();
-    if (!json.predictions) return res.status(502).json({ error: json.message || 'No predictions returned' });
 
-    const normalised = json.predictions.map(p => ({ label: p.class, score: p.confidence }));
+    // Gradio Label output: { label: "PNEUMONIA", confidences: [{label, confidence}, ...] }
+    if (!json.data || !json.data[0]) {
+      return res.status(502).json({ error: json.error || 'No data returned from model' });
+    }
+
+    const output = json.data[0];
+    const confidences = output.confidences || [];
+
+    if (confidences.length === 0) {
+      return res.status(502).json({ error: 'Empty confidences from model' });
+    }
+
+    const normalised = confidences.map(c => ({ label: c.label, score: c.confidence }));
     res.status(200).json(normalised);
+
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
