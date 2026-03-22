@@ -1,46 +1,44 @@
-// Disable Vercel's body parser — we need raw binary (the image bytes)
-const config = { api: { bodyParser: false } };
-
+// Body parser ON — we receive base64 JSON, no binary transfer issues
 const handler = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const token = process.env.HF_TOKEN;
   const model = process.env.HF_MODEL || 'nickmuchi/vit-finetuned-chest-xray-pneumonia';
-
   if (!token) return res.status(500).json({ error: 'HF_TOKEN not configured on server' });
 
   try {
-    // Read raw body chunks (binary image data)
-    const chunks = [];
-    for await (const chunk of req) chunks.push(chunk);
-    const body = Buffer.concat(chunks);
+    const { data, type } = req.body; // base64 string + mime type from frontend
+    const binary = Buffer.from(data, 'base64');
 
-    let data;
-    // Retry up to 3 times to handle HF cold-start (model loading)
+    let result;
     for (let attempt = 0; attempt < 3; attempt++) {
       const hfRes = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': req.headers['content-type'] || 'image/jpeg',
+          'Content-Type': type || 'image/jpeg',
         },
-        body,
+        body: binary,
       });
-      data = await hfRes.json();
 
-      if (data.error && data.estimated_time) {
-        // Model is loading — wait then retry
-        await new Promise(r => setTimeout(r, Math.min(data.estimated_time * 1000, 20000)));
-        continue;
+      const text = await hfRes.text();
+      // HF returns HTML when model is loading or rate-limited
+      if (text.trim().startsWith('<')) {
+        if (attempt < 2) {
+          await new Promise(r => setTimeout(r, 15000));
+          continue;
+        }
+        return res.status(503).json({ error: 'Model is still loading. Wait 20s and try again.' });
       }
+
+      result = JSON.parse(text);
       break;
     }
 
-    res.status(200).json(data);
+    res.status(200).json(result);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 };
 
 module.exports = handler;
-module.exports.config = config;

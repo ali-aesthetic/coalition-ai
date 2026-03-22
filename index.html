@@ -275,10 +275,18 @@ async function runClassify() {
   out.innerHTML = '<p class="status-msg">⏳ Analysing… (first run may take ~20s while model warms up)</p>';
 
   try {
+    // Convert to base64 — more reliable than raw binary over serverless
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(currentBlob);
+    });
+
     const resp = await fetch('/api/classify', {
       method: 'POST',
-      headers: { 'Content-Type': currentBlob.type || 'image/jpeg' },
-      body: currentBlob
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: base64, type: currentBlob.type || 'image/jpeg' })
     });
     const data = await resp.json();
     if (data.error) throw new Error(data.error);
