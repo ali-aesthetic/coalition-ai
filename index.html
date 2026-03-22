@@ -311,7 +311,7 @@ function renderClassifyResults(data) {
       <div class="bar-val">${pct}%</div>
     </div>`;
   });
-  html += `<p style="font-size:.72rem;color:var(--muted);margin-top:1rem">Model: ${localStorage.getItem('hf_model')} · Real inference via HuggingFace API</p>`;
+  html += `<p style="font-size:.72rem;color:var(--muted);margin-top:1rem">Model: chest-x-rays-qjmia · Real inference via Roboflow API</p>`;
   document.getElementById('classify-results').innerHTML = html;
 }
 </script>
