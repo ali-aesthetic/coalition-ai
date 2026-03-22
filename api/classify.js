@@ -11,7 +11,7 @@ const handler = async (req, res) => {
 
     let result;
     for (let attempt = 0; attempt < 3; attempt++) {
-      const hfRes = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+      const hfRes = await fetch(`https://router.huggingface.co/hf-inference/models/${model}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
