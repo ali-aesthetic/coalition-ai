@@ -387,39 +387,35 @@ async function runSegment() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data: base64 }),
     });
-    const predictions = await resp.json();
-    if (predictions.error) throw new Error(predictions.error);
-    if (!predictions.length) throw new Error('No regions detected in this image');
+    const result = await resp.json();
+    if (result.error) throw new Error(result.error);
 
+    const mask = result.segmentation_mask;
+    const classMap = result.class_map || {};
+
+    if (!mask) throw new Error('No segmentation mask returned');
+
+    // Overlay the segmentation mask on top of the original image
     loadCanvas(out, (ctx, w, h, canvas) => {
-      const colors = { lung: '#00c6ff', default: '#a78bfa' };
-      predictions.forEach(pred => {
-        const pts = pred.points;
-        if (!pts || !pts.length) return;
-        const color = colors[pred.class?.toLowerCase()] || colors.default;
-        ctx.save();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = Math.max(2, w * 0.004);
-        ctx.globalAlpha = 0.9;
-        ctx.setLineDash([Math.max(4, w * 0.007), Math.max(3, w * 0.004)]);
-        ctx.beginPath();
-        pts.forEach((pt, i) => {
-          i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
-        });
-        ctx.closePath();
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.globalAlpha = 0.15;
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.restore();
-      });
-      out.innerHTML = '';
-      out.appendChild(canvas);
-      const p = document.createElement('p');
-      p.style.cssText = 'font-size:.78rem;color:var(--muted);margin-top:.6rem';
-      p.innerHTML = `${predictions.length} region(s) detected &nbsp;·&nbsp; Model: chest-xrays-zogcf-jimfe via Roboflow`;
-      out.appendChild(p);
+      const maskImg = new Image();
+      maskImg.onload = () => {
+        ctx.globalAlpha = 0.55;
+        ctx.drawImage(maskImg, 0, 0, w, h);
+        ctx.globalAlpha = 1;
+        out.innerHTML = '';
+        out.appendChild(canvas);
+
+        // Legend from class_map
+        const classes = Object.values(classMap).filter(c => c !== 'background');
+        const p = document.createElement('p');
+        p.style.cssText = 'font-size:.78rem;color:var(--muted);margin-top:.6rem;line-height:1.8';
+        p.innerHTML = `Detected regions: <strong style="color:var(--accent)">${classes.join(', ')}</strong><br>Model: chest-xrays-zogcf · Roboflow Semantic Segmentation`;
+        out.appendChild(p);
+      };
+      maskImg.onerror = () => {
+        out.innerHTML = '<p class="status-msg" style="color:var(--red)">Could not render segmentation mask.</p>';
+      };
+      maskImg.src = `data:image/png;base64,${mask}`;
     });
   } catch(e) {
     out.innerHTML = `<p class="status-msg" style="color:var(--red)">Error: ${e.message}</p>`;
@@ -452,17 +448,31 @@ async function runGradcam() {
     if (result.error) throw new Error(result.error);
 
     out.innerHTML = '';
-    if (result.heatmap) {
-      const img = document.createElement('img');
-      img.src = `data:image/jpeg;base64,${result.heatmap}`;
-      img.style.cssText = 'max-width:100%;border-radius:8px';
-      out.appendChild(img);
+    // Show original image
+    const imgEl = document.createElement('img');
+    imgEl.src = URL.createObjectURL(currentBlob);
+    imgEl.style.cssText = 'max-width:100%;border-radius:8px;margin-bottom:.75rem';
+    out.appendChild(imgEl);
+
+    // Confidence bars for all predictions
+    if (result.predictions?.length) {
+      const top = result.predictions.reduce((a, b) => a.score > b.score ? a : b);
+      let html = `<div class="pred-badge">Prediction: ${top.label} &nbsp;(${(top.score*100).toFixed(1)}%)</div>`;
+      html += '<div class="result-label" style="margin-top:.6rem">Confidence per class</div>';
+      result.predictions.sort((a,b) => b.score - a.score).forEach(item => {
+        const pct = (item.score * 100).toFixed(1);
+        const color = item === top ? 'var(--accent)' : 'var(--purple)';
+        html += `<div class="bar-row">
+          <div class="bar-name">${item.label}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+          <div class="bar-val">${pct}%</div>
+        </div>`;
+      });
+      html += `<p style="font-size:.72rem;color:var(--muted);margin-top:.6rem">Model: chest-x-rays-qjmia · Roboflow</p>`;
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      out.appendChild(div);
     }
-    const top = result.predictions?.reduce((a, b) => a.score > b.score ? a : b);
-    const p = document.createElement('p');
-    p.style.cssText = 'font-size:.78rem;color:var(--muted);margin-top:.6rem';
-    p.innerHTML = `Prediction: <strong style="color:var(--accent)">${top?.label}</strong> (${(top?.score*100).toFixed(1)}%) &nbsp;·&nbsp; Roboflow visualize`;
-    out.appendChild(p);
   } catch(e) {
     out.innerHTML = `<p class="status-msg" style="color:var(--red)">Error: ${e.message}</p>`;
   }

@@ -8,7 +8,7 @@ const handler = async (req, res) => {
     const { data } = req.body;
 
     const rfRes = await fetch(
-      `https://outline.roboflow.com/chest-xrays-zogcf-jimfe/1?api_key=${apiKey}`,
+      `https://segment.roboflow.com/chest-xrays-zogcf/3?api_key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -17,9 +17,10 @@ const handler = async (req, res) => {
     );
 
     const json = await rfRes.json();
-    if (!json.predictions) return res.status(502).json({ error: json.message || 'No segmentation returned' });
+    if (json.error) return res.status(502).json({ error: json.error });
 
-    res.status(200).json(json.predictions);
+    // Return full predictions object — contains segmentation_mask + class_map
+    res.status(200).json(json.predictions || json);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
