@@ -8,7 +8,7 @@ const handler = async (req, res) => {
     const { data } = req.body;
 
     const rfRes = await fetch(
-      `https://classify.roboflow.com/chest-x-rays-qjmia/2?api_key=${apiKey}`,
+      `https://serverless.roboflow.com/chest-x-rays-qjmia/3?api_key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
