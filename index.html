@@ -127,8 +127,6 @@ footer strong{color:var(--accent)}
   <div class="nav-brand">🏥 Coalition AI</div>
   <div class="nav-right">
     <div id="countdown">Loading...</div>
-    <span id="token-status" class="token-status missing">⚠ No API token</span>
-    <button class="btn-settings" onclick="openSettings()">⚙ Settings</button>
   </div>
 </nav>
 
@@ -196,26 +194,7 @@ footer strong{color:var(--accent)}
 
 </section>
 
-<!-- SETTINGS MODAL -->
-<div class="modal-overlay" id="settings-modal">
-  <div class="modal">
-    <h3>⚙ API Settings</h3>
-    <div class="field">
-      <label>HuggingFace API Token</label>
-      <input type="password" id="hf-token-input" placeholder="hf_xxxxxxxxxxxxxxxxxxxx">
-      <div class="hint">Get yours at <strong>huggingface.co/settings/tokens</strong> — free account works. Token stays in your browser only, never sent to any server except HuggingFace.</div>
-    </div>
-    <div class="field">
-      <label>Classification Model</label>
-      <input type="text" id="model-input" value="nickmuchi/vit-finetuned-chest-xray-pneumonia">
-      <div class="hint">Placeholder model for the prototype. Swap for your trained model on hackathon day.</div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-save" onclick="saveSettings()">Save & Close</button>
-      <button class="btn-cancel" onclick="closeSettings()">Cancel</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- FOOTER -->
 <footer>
@@ -243,28 +222,7 @@ function updateCountdown() {
 setInterval(updateCountdown, 1000);
 updateCountdown();
 
-// ── Settings ───────────────────────────────────────────────────────────────
-function openSettings() {
-  document.getElementById('hf-token-input').value = localStorage.getItem('hf_token') || '';
-  document.getElementById('model-input').value = localStorage.getItem('hf_model') || 'nickmuchi/vit-finetuned-chest-xray-pneumonia';
-  document.getElementById('settings-modal').classList.add('open');
-}
-function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
-function saveSettings() {
-  localStorage.setItem('hf_token', document.getElementById('hf-token-input').value.trim());
-  localStorage.setItem('hf_model', document.getElementById('model-input').value.trim());
-  updateTokenStatus();
-  closeSettings();
-}
-function updateTokenStatus() {
-  const el = document.getElementById('token-status');
-  if (localStorage.getItem('hf_token')) {
-    el.className = 'token-status ok'; el.textContent = '✓ API ready';
-  } else {
-    el.className = 'token-status missing'; el.textContent = '⚠ No API token';
-  }
-}
-updateTokenStatus();
+
 </script>
 
 <script>
@@ -310,25 +268,18 @@ function switchTab(name, btn) {
 // ── Classification (real HF API call) ─────────────────────────────────────
 async function runClassify() {
   if (!currentBlob) { alert('Upload an image first.'); return; }
-  const token = localStorage.getItem('hf_token');
-  const model = localStorage.getItem('hf_model') || 'nickmuchi/vit-finetuned-chest-xray-pneumonia';
   const btn = document.getElementById('btn-classify');
   const out = document.getElementById('classify-results');
 
   btn.disabled = true; btn.textContent = '⏳ Analysing...';
-  out.innerHTML = '<p class="status-msg">Sending to HuggingFace Inference API...</p>';
-
-  if (!token) {
-    out.innerHTML = '<p class="status-msg" style="color:var(--red)">⚠ No API token set. Open ⚙ Settings and add your HuggingFace token.</p>';
-    btn.disabled = false; btn.textContent = '▶ Run Classification'; return;
-  }
+  out.innerHTML = '<p class="status-msg">Sending to AI model...</p>';
 
   try {
     let data = null;
     for (let attempt = 0; attempt < 3; attempt++) {
-      const resp = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+      const resp = await fetch('/api/classify', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': currentBlob.type || 'image/jpeg' },
         body: currentBlob
       });
       data = await resp.json();
