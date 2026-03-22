@@ -203,6 +203,12 @@ footer strong{color:var(--accent)}
   <span style="color:var(--border)">Prototype v1 — real model weights loaded on hackathon day</span>
 </footer>
 
+<script type="module">
+// ── Vercel Analytics ───────────────────────────────────────────────────────
+import { inject } from 'https://cdn.jsdelivr.net/npm/@vercel/analytics@1/+esm';
+inject({ mode: 'production' });
+</script>
+
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 let currentFile = null;
