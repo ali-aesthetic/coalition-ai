@@ -1,29 +1,39 @@
-const handler = async (req, res) => {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+// api/segment.js — Vercel serverless function
+// Calls HF Space /segment endpoint
 
-  const apiKey = process.env.ROBOFLOW_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'ROBOFLOW_API_KEY not configured' });
+module.exports = async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  const HF_URL = process.env.HF_SPACE_URL;
+  if (!HF_URL) return res.status(500).json({ error: "HF_SPACE_URL not configured" });
+
+  const { image } = req.body;
+  if (!image) return res.status(400).json({ error: "Missing image field" });
 
   try {
-    const { data } = req.body;
+    const response = await fetch(`${HF_URL}/segment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image }),
+      signal: AbortSignal.timeout(45000),
+    });
 
-    const rfRes = await fetch(
-      `https://segment.roboflow.com/chest-xrays-zogcf/3?api_key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: data,
-      }
-    );
+    if (!response.ok) {
+      const text = await response.text();
+      return res.status(response.status).json({ error: `HF Space error: ${text}` });
+    }
 
-    const json = await rfRes.json();
-    if (json.error) return res.status(502).json({ error: json.error });
-
-    // Return full predictions object — contains segmentation_mask + class_map
-    res.status(200).json(json.predictions || json);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+    const data = await response.json();
+    return res.status(200).json(data);
+  } catch (err) {
+    if (err.name === "TimeoutError") {
+      return res.status(504).json({ error: "Segmentation timed out. Try again in 30s." });
+    }
+    return res.status(500).json({ error: err.message });
   }
 };
-
-module.exports = handler;
