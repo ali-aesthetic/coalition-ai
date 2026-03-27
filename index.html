@@ -142,11 +142,12 @@ nav {
 .preview-wrap {
   display: none; margin-top: 20px; position: relative;
   border-radius: 10px; overflow: hidden;
-  max-height: 320px; background: #000;
+  background: #1a1a2e;
 }
 .preview-wrap img {
-  max-width: 100%; max-height: 320px;
-  display: block; margin: 0 auto; object-fit: contain;
+  width: 100%; height: 360px;
+  display: block; object-fit: contain;
+  image-rendering: pixelated;
 }
 .preview-remove {
   position: absolute; top: 8px; right: 8px;
@@ -211,12 +212,14 @@ nav {
 @media (max-width: 600px) { .seg-layout { grid-template-columns: 1fr; } }
 .seg-panel h4 { font-size: .82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); margin-bottom: 10px; }
 .seg-canvas-wrap {
-  border-radius: 10px; overflow: hidden; background: #000;
-  position: relative; max-height: 300px;
+  border-radius: 10px; overflow: hidden; background: #1a1a2e;
+  position: relative;
   display: flex; align-items: center; justify-content: center;
+  height: 300px;
 }
 .seg-canvas-wrap canvas, .seg-canvas-wrap img {
   max-width: 100%; max-height: 300px; display: block; object-fit: contain;
+  image-rendering: pixelated;
 }
 .seg-stats {
   margin-top: 16px; display: flex; gap: 14px; flex-wrap: wrap;
@@ -236,6 +239,35 @@ nav {
 }
 .error-banner.visible { display: flex; }
 .error-banner svg { flex-shrink: 0; margin-top: 2px; }
+
+/* ── TWO-COLUMN TASK LAYOUT ── */
+.task-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+.task-left {
+  flex: 0 0 420px;
+  min-width: 0;
+}
+.task-right {
+  flex: 1;
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .task-layout { flex-direction: column; }
+  .task-left { flex: none; width: 100%; }
+}
+
+/* Mask toggle button styles */
+.mask-toggle {
+  padding: 6px 16px; border-radius: 20px; border: 1.5px solid var(--lgray);
+  background: white; color: var(--gray); font-size: .82rem; font-weight: 600;
+  cursor: pointer; transition: all .2s;
+}
+.mask-toggle.active {
+  background: var(--navy); color: white; border-color: var(--navy);
+}
 
 /* ── HOW IT WORKS ── */
 .how-section { margin-top: 60px; }
@@ -272,7 +304,6 @@ footer a { color: var(--teal2); text-decoration: none; }
   <div class="nav-logo">
     <div class="dot"></div>
     <span>Coalition AI</span>
-    <sub>by Webster Tashkent</sub>
   </div>
   <span class="nav-badge">AI in Healthcare 2026</span>
 </nav>
@@ -306,107 +337,121 @@ footer a { color: var(--teal2); text-decoration: none; }
 
   <!-- ── TAB: CLASSIFICATION ── -->
   <div id="tab-classify" class="tab-panel active">
-    <div class="upload-card">
-      <h2>Biopsy Image Classification</h2>
-      <p class="desc">Upload a biopsy image to predict one of 12 cancer subtypes (classes 0–11). Uses EfficientNet-B2 with 4-rotation TTA.</p>
+    <div class="task-layout">
+      <div class="task-left">
+        <div class="upload-card">
+          <h2>Biopsy Image Classification</h2>
+          <p class="desc">Upload a biopsy image to predict one of 12 cancer subtypes (classes 0–11). Uses EfficientNet-B2 with 4-rotation TTA.</p>
 
-      <div class="drop-zone" id="clf-drop" ondragover="handleDrag(event,'clf')" ondragleave="handleDragLeave('clf')" ondrop="handleDrop(event,'clf')">
-        <input type="file" id="clf-input" accept="image/*" onchange="handleFile(event,'clf')">
-        <div class="drop-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#00a878" stroke-width="2">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-          </svg>
-        </div>
-        <div class="drop-title">Drop biopsy image here</div>
-        <div class="drop-sub">or click to browse — <strong>JPG, PNG, TIFF</strong> supported</div>
-      </div>
+          <div class="drop-zone" id="clf-drop" ondragover="handleDrag(event,'clf')" ondragleave="handleDragLeave('clf')" ondrop="handleDrop(event,'clf')">
+            <input type="file" id="clf-input" accept="image/*" onchange="handleFile(event,'clf')">
+            <div class="drop-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#00a878" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+            </div>
+            <div class="drop-title">Drop biopsy image here</div>
+            <div class="drop-sub">or click to browse — <strong>JPG, PNG, TIFF</strong> supported</div>
+          </div>
 
-      <div class="preview-wrap" id="clf-preview">
-        <img id="clf-img" src="" alt="preview">
-        <button class="preview-remove" onclick="clearImage('clf')">✕</button>
-      </div>
+          <div class="preview-wrap" id="clf-preview">
+            <img id="clf-img" src="" alt="preview">
+            <button class="preview-remove" onclick="clearImage('clf')">✕</button>
+          </div>
 
-      <div class="error-banner" id="clf-error">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-        <span id="clf-error-msg"></span>
-      </div>
+          <div class="error-banner" id="clf-error">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span id="clf-error-msg"></span>
+          </div>
 
-      <button class="btn-analyze" id="clf-btn" onclick="runClassify()" disabled>
-        <div class="spinner"></div>
-        <span class="btn-text">Classify Image</span>
-      </button>
-    </div>
-
-    <!-- Classification Result -->
-    <div class="result-card" id="clf-result">
-      <div class="result-label">Classification Result</div>
-      <div class="clf-badge" id="clf-badge">
-        <div class="class-num" id="clf-class-num">—</div>
-        <div class="class-info">
-          <span class="class-name" id="clf-class-name">—</span>
-          <span class="class-conf" id="clf-class-conf">—</span>
+          <button class="btn-analyze" id="clf-btn" onclick="runClassify()" disabled>
+            <div class="spinner"></div>
+            <span class="btn-text">Classify Image</span>
+          </button>
         </div>
       </div>
-      <div class="result-label" style="margin-top:20px">All Class Probabilities</div>
-      <div class="prob-grid" id="clf-prob-grid"></div>
+      <div class="task-right">
+        <!-- Classification Result -->
+        <div class="result-card" id="clf-result">
+          <div class="result-label">Classification Result</div>
+          <div class="clf-badge" id="clf-badge">
+            <div class="class-num" id="clf-class-num">—</div>
+            <div class="class-info">
+              <span class="class-name" id="clf-class-name">—</span>
+              <span class="class-conf" id="clf-class-conf">—</span>
+            </div>
+          </div>
+          <div class="result-label" style="margin-top:20px">All Class Probabilities</div>
+          <div class="prob-grid" id="clf-prob-grid"></div>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- ── TAB: SEGMENTATION ── -->
   <div id="tab-segment" class="tab-panel">
-    <div class="upload-card">
-      <h2>Lesion Segmentation</h2>
-      <p class="desc">Upload a biopsy image to generate a binary segmentation mask highlighting the region of interest. Uses UNet++ with D4 TTA (8 augmented passes).</p>
+    <div class="task-layout">
+      <div class="task-left">
+        <div class="upload-card">
+          <h2>Lesion Segmentation</h2>
+          <p class="desc">Upload a biopsy image to generate a binary segmentation mask highlighting the region of interest. Uses UNet++ with D4 TTA (8 augmented passes).</p>
 
-      <div class="drop-zone" id="seg-drop" ondragover="handleDrag(event,'seg')" ondragleave="handleDragLeave('seg')" ondrop="handleDrop(event,'seg')">
-        <input type="file" id="seg-input" accept="image/*" onchange="handleFile(event,'seg')">
-        <div class="drop-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#00a878" stroke-width="2">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-          </svg>
-        </div>
-        <div class="drop-title">Drop biopsy image here</div>
-        <div class="drop-sub">or click to browse — <strong>JPG, PNG, TIFF</strong> supported</div>
-      </div>
-
-      <div class="preview-wrap" id="seg-preview">
-        <img id="seg-img" src="" alt="preview">
-        <button class="preview-remove" onclick="clearImage('seg')">✕</button>
-      </div>
-
-      <div class="error-banner" id="seg-error">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-        <span id="seg-error-msg"></span>
-      </div>
-
-      <button class="btn-analyze" id="seg-btn" onclick="runSegment()" disabled>
-        <div class="spinner"></div>
-        <span class="btn-text">Generate Segmentation Mask</span>
-      </button>
-    </div>
-
-    <!-- Segmentation Result -->
-    <div class="result-card" id="seg-result">
-      <div class="result-label">Segmentation Result</div>
-      <div class="seg-layout">
-        <div class="seg-panel">
-          <h4>Original Image</h4>
-          <div class="seg-canvas-wrap">
-            <img id="seg-orig-img" src="" alt="original">
+          <div class="drop-zone" id="seg-drop" ondragover="handleDrag(event,'seg')" ondragleave="handleDragLeave('seg')" ondrop="handleDrop(event,'seg')">
+            <input type="file" id="seg-input" accept="image/*" onchange="handleFile(event,'seg')">
+            <div class="drop-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#00a878" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+            </div>
+            <div class="drop-title">Drop biopsy image here</div>
+            <div class="drop-sub">or click to browse — <strong>JPG, PNG, TIFF</strong> supported</div>
           </div>
-        </div>
-        <div class="seg-panel">
-          <h4>Segmentation Overlay</h4>
-          <div class="seg-canvas-wrap">
-            <canvas id="seg-canvas"></canvas>
+
+          <div class="preview-wrap" id="seg-preview">
+            <img id="seg-img" src="" alt="preview">
+            <button class="preview-remove" onclick="clearImage('seg')">✕</button>
           </div>
+
+          <div class="error-banner" id="seg-error">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span id="seg-error-msg"></span>
+          </div>
+
+          <button class="btn-analyze" id="seg-btn" onclick="runSegment()" disabled>
+            <div class="spinner"></div>
+            <span class="btn-text">Generate Segmentation Mask</span>
+          </button>
         </div>
       </div>
-      <div class="seg-stats" id="seg-stats"></div>
+      <div class="task-right">
+        <!-- Segmentation Result -->
+        <div class="result-card" id="seg-result">
+          <div class="result-label">Segmentation Result</div>
+          <div style="display:flex; gap:8px; margin-bottom:16px;">
+            <button class="mask-toggle active" id="btn-overlay" onclick="setMaskMode('overlay')">🟢 Overlay</button>
+            <button class="mask-toggle" id="btn-binary" onclick="setMaskMode('binary')">⬛ Binary Mask</button>
+          </div>
+          <div class="seg-layout">
+            <div class="seg-panel">
+              <h4>Original Image</h4>
+              <div class="seg-canvas-wrap">
+                <img id="seg-orig-img" src="" alt="original">
+              </div>
+            </div>
+            <div class="seg-panel">
+              <h4>Segmentation Overlay</h4>
+              <div class="seg-canvas-wrap">
+                <canvas id="seg-canvas"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="seg-stats" id="seg-stats"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -601,6 +646,18 @@ function renderClassifyResult(data) {
     grid.appendChild(item);
   });
 
+  // Uncertainty warning
+  const topScores = Object.values(scores).sort((a,b) => b-a);
+  const existingWarning = document.getElementById('clf-uncertainty');
+  if (existingWarning) existingWarning.remove();
+  if (topScores.length >= 2 && (topScores[0] - topScores[1]) < 3) {
+    const warn = document.createElement('div');
+    warn.id = 'clf-uncertainty';
+    warn.style.cssText = 'margin-top:12px;padding:10px 14px;background:#fff8e1;border:1px solid #f4a261;border-radius:8px;font-size:.84rem;color:#7c4700;';
+    warn.textContent = '⚠️ Multiple subtypes show similar probability — manual review recommended.';
+    grid.parentNode.insertBefore(warn, grid);
+  }
+
   document.getElementById('clf-result').classList.add('visible');
 }
 
@@ -637,56 +694,72 @@ async function runSegment() {
   }
 }
 
-function renderSegmentResult(data) {
-  // Show original image
-  const origImg = document.getElementById('seg-orig-img');
-  origImg.src = 'data:image/jpeg;base64,' + state.seg.b64;
+// ── Mask mode toggle ──────────────────────────────────────────────────────
+let _maskState = null; // stores {b64orig, b64mask}
 
-  // Draw overlay on canvas
+function setMaskMode(mode) {
+  document.getElementById('btn-overlay').classList.toggle('active', mode === 'overlay');
+  document.getElementById('btn-binary').classList.toggle('active', mode === 'binary');
+  if (!_maskState) return;
   const canvas = document.getElementById('seg-canvas');
   const ctx = canvas.getContext('2d');
+  if (mode === 'binary') {
+    const maskImg = new Image();
+    maskImg.onload = () => {
+      canvas.width = maskImg.naturalWidth;
+      canvas.height = maskImg.naturalHeight;
+      ctx.drawImage(maskImg, 0, 0);
+    };
+    maskImg.src = 'data:image/png;base64,' + _maskState.b64mask;
+  } else {
+    drawOverlay(ctx, canvas, _maskState.b64orig, _maskState.b64mask);
+  }
+}
 
+function drawOverlay(ctx, canvas, b64orig, b64mask) {
   const origImage = new Image();
   origImage.onload = () => {
     canvas.width = origImage.naturalWidth;
     canvas.height = origImage.naturalHeight;
-
-    // Draw original
     ctx.drawImage(origImage, 0, 0);
-
-    // Draw mask overlay
     const maskImg = new Image();
     maskImg.onload = () => {
-      // Create offscreen canvas for mask
       const offscreen = document.createElement('canvas');
-      offscreen.width = canvas.width;
-      offscreen.height = canvas.height;
+      offscreen.width = canvas.width; offscreen.height = canvas.height;
       const octx = offscreen.getContext('2d');
       octx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
-
       const maskData = octx.getImageData(0, 0, canvas.width, canvas.height);
       const overlay = ctx.createImageData(canvas.width, canvas.height);
-
       for (let i = 0; i < maskData.data.length; i += 4) {
-        const isMask = maskData.data[i] > 128; // white pixel = lesion
-        if (isMask) {
-          overlay.data[i]     = 0;    // R
-          overlay.data[i + 1] = 200;  // G (teal)
-          overlay.data[i + 2] = 150;  // B
-          overlay.data[i + 3] = 130;  // Alpha ~50%
+        if (maskData.data[i] > 128) {
+          overlay.data[i] = 0; overlay.data[i+1] = 200;
+          overlay.data[i+2] = 150; overlay.data[i+3] = 130;
         }
       }
       ctx.putImageData(overlay, 0, 0);
     };
-    maskImg.src = 'data:image/png;base64,' + data.mask;
+    maskImg.src = 'data:image/png;base64,' + b64mask;
   };
-  origImage.src = 'data:image/jpeg;base64,' + state.seg.b64;
+  origImage.src = 'data:image/jpeg;base64,' + b64orig;
+}
 
-  // Stats
+function renderSegmentResult(data) {
+  const origImg = document.getElementById('seg-orig-img');
+  origImg.src = 'data:image/jpeg;base64,' + state.seg.b64;
+
+  _maskState = { b64orig: state.seg.b64, b64mask: data.mask };
+
+  const canvas = document.getElementById('seg-canvas');
+  const ctx = canvas.getContext('2d');
+  drawOverlay(ctx, canvas, state.seg.b64, data.mask);
+
+  // Reset toggle to overlay mode
+  setMaskMode('overlay');
+
   const stats = document.getElementById('seg-stats');
   stats.innerHTML = `
     <div class="stat-chip">Lesion Coverage <strong>${data.coverage_pct ?? '—'}%</strong></div>
-    <div class="stat-chip">Method <strong>UNet++ + D4 TTA</strong></div>
+    <div class="stat-chip">Method <strong>UNet++ + FPN Ensemble</strong></div>
     <div class="stat-chip">Val IoU <strong>~0.80</strong></div>
     <div class="stat-chip">Mask Size <strong>128×128</strong></div>
   `;
