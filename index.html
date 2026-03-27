@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Coalition AI — Biopsy Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root {
   --navy:    #0a1628;
@@ -22,10 +25,11 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
   background: var(--off); color: var(--text); line-height: 1.6;
   min-height: 100vh;
 }
+.mono { font-family: 'IBM Plex Mono', monospace; }
 
 /* ── DISCLAIMER BANNER ── */
 .disclaimer {
@@ -83,7 +87,7 @@ nav {
 .pill strong { color: var(--teal2); }
 
 /* ── MAIN CONTAINER ── */
-.container { max-width: 1100px; margin: 0 auto; padding: 40px 24px 60px; }
+.container { max-width: 1200px; margin: 0 auto; padding: 40px 32px 60px; }
 
 /* ── TABS ── */
 .tabs {
@@ -93,9 +97,10 @@ nav {
   width: fit-content;
 }
 .tab-btn {
-  padding: 10px 28px; border: none; border-radius: 9px;
-  font-size: .92rem; font-weight: 600; cursor: pointer;
+  padding: 10px 22px; border: none; border-radius: 9px;
+  font-size: .88rem; font-weight: 600; cursor: pointer;
   transition: all .2s; background: transparent; color: var(--gray);
+  display: flex; align-items: center; gap: 7px;
 }
 .tab-btn.active {
   background: var(--navy); color: var(--white);
@@ -186,17 +191,22 @@ nav {
 
 /* Classification result */
 .clf-badge {
-  display: inline-flex; align-items: center; gap: 12px;
-  background: var(--navy); color: white; padding: 14px 24px;
-  border-radius: 10px; margin-bottom: 24px;
+  display: inline-flex; align-items: center; gap: 16px;
+  background: var(--navy); color: white; padding: 14px 22px;
+  border-radius: 10px; margin-bottom: 20px;
+  border-left: 3px solid var(--teal);
 }
-.clf-badge .class-num { font-size: 1.8rem; font-weight: 800; color: var(--teal2); }
+.clf-badge .class-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.75rem; font-weight: 600; color: var(--teal2);
+  letter-spacing: -1px;
+}
 .clf-badge .class-info { display: flex; flex-direction: column; }
-.clf-badge .class-name { font-size: 1rem; font-weight: 700; }
-.clf-badge .class-conf { font-size: .82rem; color: #94d2bd; }
+.clf-badge .class-name { font-size: .95rem; font-weight: 700; }
+.clf-badge .class-conf { font-size: .8rem; color: #94d2bd; margin-top: 1px; }
 
 .prob-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px;
 }
 .prob-item { }
 .prob-header { display: flex; justify-content: space-between; font-size: .82rem; margin-bottom: 4px; }
@@ -231,6 +241,16 @@ nav {
 }
 .stat-chip strong { color: var(--teal); font-size: 1.1rem; }
 
+/* ── UNCERTAINTY WARNING ── */
+.uncertainty-warn {
+  margin-top: 0; margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #fff8e1; border: 1px solid var(--orange);
+  border-radius: 8px; font-size: .84rem; color: #7c4700;
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.uncertainty-warn svg { flex-shrink: 0; margin-top: 1px; }
+
 /* ── ERROR STATE ── */
 .error-banner {
   display: none; background: #fff5f5; border: 1px solid #fecaca;
@@ -243,11 +263,11 @@ nav {
 /* ── TWO-COLUMN TASK LAYOUT ── */
 .task-layout {
   display: flex;
-  gap: 24px;
+  gap: 28px;
   align-items: flex-start;
 }
 .task-left {
-  flex: 0 0 420px;
+  flex: 0 0 400px;
   min-width: 0;
 }
 .task-right {
@@ -261,10 +281,12 @@ nav {
 
 /* Mask toggle button styles */
 .mask-toggle {
-  padding: 6px 16px; border-radius: 20px; border: 1.5px solid var(--lgray);
+  padding: 6px 14px; border-radius: 7px; border: 1.5px solid var(--lgray);
   background: white; color: var(--gray); font-size: .82rem; font-weight: 600;
   cursor: pointer; transition: all .2s;
+  display: inline-flex; align-items: center; gap: 6px;
 }
+.mask-toggle:hover:not(.active) { background: var(--off); border-color: #c8d5e3; }
 .mask-toggle.active {
   background: var(--navy); color: white; border-color: var(--navy);
 }
@@ -279,7 +301,7 @@ nav {
   box-shadow: var(--shadow); padding: 24px;
   border-top: 3px solid var(--teal);
 }
-.step-num { font-size: .78rem; font-weight: 700; color: var(--teal); letter-spacing: 1px; margin-bottom: 8px; }
+.step-num { font-family: 'IBM Plex Mono', monospace; font-size: .78rem; font-weight: 600; color: var(--teal); letter-spacing: 1px; margin-bottom: 8px; }
 .step-card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
 .step-card p { font-size: .88rem; color: var(--gray); }
 
@@ -328,10 +350,12 @@ footer a { color: var(--teal2); text-decoration: none; }
   <!-- Tabs -->
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('classify')">
-      🔬 Task 1 — Classification
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      Task 1 — Classification
     </button>
     <button class="tab-btn" onclick="switchTab('segment')">
-      🎯 Task 2 — Segmentation
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/><path d="M19 3l-3 3 3 3"/></svg>
+      Task 2 — Segmentation
     </button>
   </div>
 
@@ -432,8 +456,14 @@ footer a { color: var(--teal2); text-decoration: none; }
         <div class="result-card" id="seg-result">
           <div class="result-label">Segmentation Result</div>
           <div style="display:flex; gap:8px; margin-bottom:16px;">
-            <button class="mask-toggle active" id="btn-overlay" onclick="setMaskMode('overlay')">🟢 Overlay</button>
-            <button class="mask-toggle" id="btn-binary" onclick="setMaskMode('binary')">⬛ Binary Mask</button>
+            <button class="mask-toggle active" id="btn-overlay" onclick="setMaskMode('overlay')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
+              Overlay
+            </button>
+            <button class="mask-toggle" id="btn-binary" onclick="setMaskMode('binary')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+              Binary Mask
+            </button>
           </div>
           <div class="seg-layout">
             <div class="seg-panel">
@@ -443,7 +473,7 @@ footer a { color: var(--teal2); text-decoration: none; }
               </div>
             </div>
             <div class="seg-panel">
-              <h4>Segmentation Overlay</h4>
+              <h4 id="seg-panel-label">Segmentation Overlay</h4>
               <div class="seg-canvas-wrap">
                 <canvas id="seg-canvas"></canvas>
               </div>
@@ -653,8 +683,24 @@ function renderClassifyResult(data) {
   if (topScores.length >= 2 && (topScores[0] - topScores[1]) < 3) {
     const warn = document.createElement('div');
     warn.id = 'clf-uncertainty';
-    warn.style.cssText = 'margin-top:12px;padding:10px 14px;background:#fff8e1;border:1px solid #f4a261;border-radius:8px;font-size:.84rem;color:#7c4700;';
-    warn.textContent = '⚠️ Multiple subtypes show similar probability — manual review recommended.';
+    warn.className = 'uncertainty-warn';
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('width', '15'); svg.setAttribute('height', '15');
+    svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '2');
+    svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round');
+    svg.setAttribute('aria-hidden', 'true');
+    const tri = document.createElementNS(svgNS, 'path');
+    tri.setAttribute('d', 'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z');
+    const l1 = document.createElementNS(svgNS, 'line');
+    l1.setAttribute('x1','12'); l1.setAttribute('y1','9'); l1.setAttribute('x2','12'); l1.setAttribute('y2','13');
+    const l2 = document.createElementNS(svgNS, 'line');
+    l2.setAttribute('x1','12'); l2.setAttribute('y1','17'); l2.setAttribute('x2','12.01'); l2.setAttribute('y2','17');
+    svg.appendChild(tri); svg.appendChild(l1); svg.appendChild(l2);
+    const span = document.createElement('span');
+    span.textContent = 'Multiple subtypes show similar probability \u2014 manual review recommended.';
+    warn.appendChild(svg); warn.appendChild(span);
     grid.parentNode.insertBefore(warn, grid);
   }
 
@@ -700,6 +746,8 @@ let _maskState = null; // stores {b64orig, b64mask}
 function setMaskMode(mode) {
   document.getElementById('btn-overlay').classList.toggle('active', mode === 'overlay');
   document.getElementById('btn-binary').classList.toggle('active', mode === 'binary');
+  const label = document.getElementById('seg-panel-label');
+  if (label) label.textContent = mode === 'binary' ? 'Binary Mask' : 'Segmentation Overlay';
   if (!_maskState) return;
   const canvas = document.getElementById('seg-canvas');
   const ctx = canvas.getContext('2d');
@@ -724,19 +772,30 @@ function drawOverlay(ctx, canvas, b64orig, b64mask) {
     ctx.drawImage(origImage, 0, 0);
     const maskImg = new Image();
     maskImg.onload = () => {
+      // Decode mask on offscreen canvas
       const offscreen = document.createElement('canvas');
       offscreen.width = canvas.width; offscreen.height = canvas.height;
       const octx = offscreen.getContext('2d');
       octx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
       const maskData = octx.getImageData(0, 0, canvas.width, canvas.height);
-      const overlay = ctx.createImageData(canvas.width, canvas.height);
+
+      // Build tinted overlay with transparent background
+      const overlayData = ctx.createImageData(canvas.width, canvas.height);
       for (let i = 0; i < maskData.data.length; i += 4) {
         if (maskData.data[i] > 128) {
-          overlay.data[i] = 0; overlay.data[i+1] = 200;
-          overlay.data[i+2] = 150; overlay.data[i+3] = 130;
+          overlayData.data[i]   = 0;
+          overlayData.data[i+1] = 200;
+          overlayData.data[i+2] = 150;
+          overlayData.data[i+3] = 140; // semi-transparent teal
         }
+        // else alpha stays 0 → original shows through
       }
-      ctx.putImageData(overlay, 0, 0);
+
+      // Composite via drawImage (respects alpha) — putImageData would replace pixels directly
+      const overlayCanvas = document.createElement('canvas');
+      overlayCanvas.width = canvas.width; overlayCanvas.height = canvas.height;
+      overlayCanvas.getContext('2d').putImageData(overlayData, 0, 0);
+      ctx.drawImage(overlayCanvas, 0, 0);
     };
     maskImg.src = 'data:image/png;base64,' + b64mask;
   };
