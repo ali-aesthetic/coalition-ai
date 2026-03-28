@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Coalition AI — Biopsy Analysis</title>
+<title>Coalition AI — Dermatoscopy Analyzer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -291,6 +291,43 @@ nav {
   background: var(--navy); color: white; border-color: var(--navy);
 }
 
+/* ── IMAGE TYPE WARNING ── */
+.img-type-warning {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fff3cd; border: 1px solid #f4a261;
+  border-radius: 8px; font-size: .82rem; color: #7c4700;
+  display: flex; align-items: flex-start; gap: 8px; line-height: 1.5;
+}
+.img-type-warning svg { flex-shrink: 0; margin-top: 1px; }
+.img-type-warning strong { display: block; margin-bottom: 2px; color: #6b3a00; }
+
+/* ── HOW TO USE ── */
+.how-to-use {
+  background: var(--white); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 28px 32px;
+  margin-bottom: 28px;
+}
+.how-to-use h2 {
+  font-size: 1.1rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--teal); margin-bottom: 20px;
+}
+.use-steps {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+}
+@media (max-width: 800px) { .use-steps { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .use-steps { grid-template-columns: 1fr; } }
+.use-step { display: flex; gap: 14px; align-items: flex-start; }
+.use-step-num {
+  flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--teal); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'IBM Plex Mono', monospace; font-size: .9rem; font-weight: 600;
+}
+.use-step-body strong { display: block; font-size: .9rem; font-weight: 700; margin-bottom: 4px; }
+.use-step-body p { font-size: .82rem; color: var(--gray); margin: 0; line-height: 1.5; }
+
 /* ── HOW IT WORKS ── */
 .how-section { margin-top: 60px; }
 .how-section h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 6px; }
@@ -333,8 +370,8 @@ footer a { color: var(--teal2); text-decoration: none; }
 <!-- Hero -->
 <div class="hero">
   <div class="hero-content">
-    <h1>Biopsy <em>Image Analysis</em></h1>
-    <p>Deep learning models for 12-class biopsy classification and binary lesion segmentation. Built for the AI in Healthcare Hackathon 2026.</p>
+    <h1>Dermatoscopy <em>Results Analyzer</em></h1>
+    <p>Deep learning models for 12-class lesion classification and binary lesion segmentation. Built for the AI in Healthcare Hackathon 2026.</p>
     <div class="hero-pills">
       <span class="pill"><strong>86.43%</strong> Classification Accuracy</span>
       <span class="pill"><strong>~0.80</strong> Segmentation IoU</span>
@@ -346,6 +383,41 @@ footer a { color: var(--teal2); text-decoration: none; }
 
 <!-- Main -->
 <div class="container">
+
+  <!-- How to Use -->
+  <div class="how-to-use" role="region" aria-label="How to use this tool">
+    <h2>How to Use</h2>
+    <div class="use-steps">
+      <div class="use-step">
+        <div class="use-step-num" aria-hidden="true">1</div>
+        <div class="use-step-body">
+          <strong>Get your image</strong>
+          <p>Take a close-up dermatoscopy photo of the skin lesion. The image should show only the lesion area clearly.</p>
+        </div>
+      </div>
+      <div class="use-step">
+        <div class="use-step-num" aria-hidden="true">2</div>
+        <div class="use-step-body">
+          <strong>Pick a task below</strong>
+          <p><b>Classification</b> — the AI tells you what type of lesion it is.<br><b>Segmentation</b> — the AI highlights exactly where the lesion is.</p>
+        </div>
+      </div>
+      <div class="use-step">
+        <div class="use-step-num" aria-hidden="true">3</div>
+        <div class="use-step-body">
+          <strong>Upload the image</strong>
+          <p>Drag your image onto the upload area, or click it to open a file browser.</p>
+        </div>
+      </div>
+      <div class="use-step">
+        <div class="use-step-num" aria-hidden="true">4</div>
+        <div class="use-step-body">
+          <strong>Click the button &amp; wait</strong>
+          <p>Press the green button. Results appear in about 10–30 seconds. Do not close the page.</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Tabs -->
   <div class="tabs">
@@ -364,8 +436,8 @@ footer a { color: var(--teal2); text-decoration: none; }
     <div class="task-layout">
       <div class="task-left">
         <div class="upload-card">
-          <h2>Biopsy Image Classification</h2>
-          <p class="desc">Upload a biopsy image to predict one of 12 cancer subtypes (classes 0–11). Uses EfficientNet-B2 with 4-rotation TTA.</p>
+          <h2>Lesion Classification</h2>
+          <p class="desc">Upload a dermatoscopy image to predict one of 12 lesion subtypes (classes 0–11). Uses EfficientNet-B2 with 4-rotation TTA.</p>
 
           <div class="drop-zone" id="clf-drop" ondragover="handleDrag(event,'clf')" ondragleave="handleDragLeave('clf')" ondrop="handleDrop(event,'clf')">
             <input type="file" id="clf-input" accept="image/*" onchange="handleFile(event,'clf')">
@@ -374,13 +446,21 @@ footer a { color: var(--teal2); text-decoration: none; }
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
               </svg>
             </div>
-            <div class="drop-title">Drop biopsy image here</div>
+            <div class="drop-title">Drop dermatoscopy image here</div>
             <div class="drop-sub">or click to browse — <strong>JPG, PNG, TIFF</strong> supported</div>
           </div>
 
           <div class="preview-wrap" id="clf-preview">
             <img id="clf-img" src="" alt="preview">
             <button class="preview-remove" onclick="clearImage('clf')">✕</button>
+          </div>
+
+          <div class="img-type-warning" role="note" aria-label="Image type requirement">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+              <strong>Only dermatoscopy images</strong>
+              This tool only works with close-up skin lesion photos taken with a dermatoscope. Do not upload regular photos, selfies, X-rays, or other images — the model will produce meaningless results.
+            </div>
           </div>
 
           <div class="error-banner" id="clf-error">
@@ -420,7 +500,7 @@ footer a { color: var(--teal2); text-decoration: none; }
       <div class="task-left">
         <div class="upload-card">
           <h2>Lesion Segmentation</h2>
-          <p class="desc">Upload a biopsy image to generate a binary segmentation mask highlighting the region of interest. Uses UNet++ with D4 TTA (8 augmented passes).</p>
+          <p class="desc">Upload a dermatoscopy image to generate a binary segmentation mask highlighting the lesion region. Uses UNet++ with D4 TTA (8 augmented passes).</p>
 
           <div class="drop-zone" id="seg-drop" ondragover="handleDrag(event,'seg')" ondragleave="handleDragLeave('seg')" ondrop="handleDrop(event,'seg')">
             <input type="file" id="seg-input" accept="image/*" onchange="handleFile(event,'seg')">
@@ -429,13 +509,21 @@ footer a { color: var(--teal2); text-decoration: none; }
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
               </svg>
             </div>
-            <div class="drop-title">Drop biopsy image here</div>
+            <div class="drop-title">Drop dermatoscopy image here</div>
             <div class="drop-sub">or click to browse — <strong>JPG, PNG, TIFF</strong> supported</div>
           </div>
 
           <div class="preview-wrap" id="seg-preview">
             <img id="seg-img" src="" alt="preview">
             <button class="preview-remove" onclick="clearImage('seg')">✕</button>
+          </div>
+
+          <div class="img-type-warning" role="note" aria-label="Image type requirement">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+              <strong>Only dermatoscopy images</strong>
+              This tool only works with close-up skin lesion photos taken with a dermatoscope. Do not upload regular photos, selfies, X-rays, or other images — the model will produce meaningless results.
+            </div>
           </div>
 
           <div class="error-banner" id="seg-error">
@@ -493,7 +581,7 @@ footer a { color: var(--teal2); text-decoration: none; }
       <div class="step-card">
         <div class="step-num">STEP 01</div>
         <h4>Image Upload</h4>
-        <p>Biopsy image is converted to base64 and sent to our Vercel serverless function.</p>
+        <p>Dermatoscopy image is converted to base64 and sent to our Vercel serverless function.</p>
       </div>
       <div class="step-card">
         <div class="step-num">STEP 02</div>
@@ -645,7 +733,7 @@ async function runClassify() {
 function renderClassifyResult(data) {
   // Badge
   document.getElementById('clf-class-num').textContent = data.label;
-  document.getElementById('clf-class-name').textContent = 'Biopsy Subtype ' + data.label.replace('Class ', '');
+  document.getElementById('clf-class-name').textContent = 'Lesion Subtype ' + data.label.replace('Class ', '');
   document.getElementById('clf-class-conf').textContent = `Confidence: ${data.confidence}%`;
 
   // Probability bars
